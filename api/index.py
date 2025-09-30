@@ -1,11 +1,13 @@
 from flask import Flask, request, jsonify
 import requests
 import os
-from dotenv import load_dotenv
 from geopy.distance import geodesic
 
-load_dotenv()
 app = Flask(__name__)
+
+# Hardcoding API keys directly in the code
+GOOGLE_MAPS_API_KEY = "AIzaSyDut42n1-31SoKCfwvHhr_994uJjVnE3RA"
+ORS_API_KEY = "eyJvcmciOiI1YjNjZTM1OTc4NTExMTAwMDFjZjYyNDgiLCJpZCI6ImJmMjY2YTdhODg3YzQxYTBhNTA5NDVjODc0ODAyZDM3IiwiaCI6Im11cm11cjY0In0="
 
 # --- Helper function for AI risk scoring ---
 def calculate_risk_score(route):
@@ -89,15 +91,11 @@ def get_route():
     except (TypeError, ValueError, AttributeError):
         return jsonify({"error": "Invalid or missing coordinate format"}), 400
 
-    api_key = os.getenv('GOOGLE_MAPS_API_KEY')
-    if not api_key:
-        return jsonify({"error": "API key not configured"}), 500
-
     directions_url = "https://maps.googleapis.com/maps/api/directions/json"
     params = {
         "origin": f"{start_lat},{start_lon}",
         "destination": f"{end_lat},{end_lon}",
-        "key": api_key,
+        "key": GOOGLE_MAPS_API_KEY,
         "alternatives": "true",
         "departure_time": "now"  # This is needed for traffic data
     }
