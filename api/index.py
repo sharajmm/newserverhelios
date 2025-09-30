@@ -81,6 +81,16 @@ def calculate_risk_score(route):
     return base_score, hazard_coordinates, reasons
 
 # --- API Endpoints ---
+@app.route('/api/autocomplete', methods=['GET'])
+def autocomplete():
+    query = request.args.get('query', '')
+    if not query:
+        return jsonify([])
+    # Example: Call Google Places API or similar (mocked for now)
+    # Replace this with your actual autocomplete logic
+    suggestions = [f"{query} Central", f"{query} Park", f"{query} Station"]
+    return jsonify(suggestions)
+
 @app.route('/api/route', methods=['GET'])
 def get_route():
     try:
@@ -90,6 +100,12 @@ def get_route():
         end_lon = float(request.args.get('end_lon'))
     except (TypeError, ValueError, AttributeError):
         return jsonify({"error": "Invalid or missing coordinate format"}), 400
+
+    # Validate coordinates for India
+    valid_lat = lambda lat: 8 <= lat <= 37
+    valid_lon = lambda lon: 68 <= lon <= 97
+    if not (valid_lat(start_lat) and valid_lon(start_lon) and valid_lat(end_lat) and valid_lon(end_lon)):
+        return jsonify({"error": "Coordinates are outside of the supported region."}), 400
 
     directions_url = "https://maps.googleapis.com/maps/api/directions/json"
     params = {
