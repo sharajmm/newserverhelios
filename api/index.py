@@ -94,18 +94,26 @@ def autocomplete():
 @app.route('/api/route', methods=['GET'])
 def get_route():
     try:
+        # Ensure all required parameters are present
+        required_params = ['start_lat', 'start_lon', 'end_lat', 'end_lon']
+        missing_params = [param for param in required_params if param not in request.args]
+        if missing_params:
+            return jsonify({"error": f"Missing required parameters: {', '.join(missing_params)}"}), 400
+
+        # Parse and validate coordinates
         start_lat = float(request.args.get('start_lat'))
         start_lon = float(request.args.get('start_lon'))
         end_lat = float(request.args.get('end_lat'))
         end_lon = float(request.args.get('end_lon'))
-    except (TypeError, ValueError, AttributeError):
-        return jsonify({"error": "Invalid or missing coordinate format"}), 400
 
-    # Validate coordinates for India
-    valid_lat = lambda lat: 8 <= lat <= 37
-    valid_lon = lambda lon: 68 <= lon <= 97
-    if not (valid_lat(start_lat) and valid_lon(start_lon) and valid_lat(end_lat) and valid_lon(end_lon)):
-        return jsonify({"error": "Coordinates are outside of the supported region."}), 400
+        # Validate coordinates for India
+        valid_lat = lambda lat: 8 <= lat <= 37
+        valid_lon = lambda lon: 68 <= lon <= 97
+        if not (valid_lat(start_lat) and valid_lon(start_lon) and valid_lat(end_lat) and valid_lon(end_lon)):
+            return jsonify({"error": "Coordinates are outside of the supported region."}), 400
+
+    except ValueError:
+        return jsonify({"error": "Coordinates must be valid numbers."}), 400
 
     directions_url = "https://maps.googleapis.com/maps/api/directions/json"
     params = {
@@ -134,17 +142,17 @@ def get_route():
                 "hazards": hazards,
                 "reasons": reasons
             })
-        
+
         # Normalize scores to a 1-10 scale
         min_risk = min(r['raw_risk'] for r in route_objects)
         max_risk = max(r['raw_risk'] for r in route_objects)
-        
+
         for route in route_objects:
             if max_risk > min_risk:
                 route['risk_score'] = 1 + 9 * (route['raw_risk'] - min_risk) / (max_risk - min_risk)
             else:
-                route['risk_score'] = 1.0 # If all routes are equal, score is 1
-            del route['raw_risk'] # Remove the raw score
+                route['risk_score'] = 1.0  # If all routes are equal, score is 1
+            del route['raw_risk']  # Remove the raw score
 
         return jsonify({"routes": route_objects})
     except Exception as e:
